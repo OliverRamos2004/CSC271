@@ -16,9 +16,13 @@ add_library(glad ${CMAKE_SOURCE_DIR}/glad/src/glad.c)
 
 # Define the executable
 add_executable(CSC271 main.cpp
-        src/shaderprogram.cpp)
+        src/shaderprogram.cpp
+        src/stb_image.cpp
+        include/stb_image.h
+)
 
 add_compile_definitions(SHADER_DIR="${CMAKE_SOURCE_DIR}/shaders/")
+add_compile_definitions(ASSETS_DIR="${CMAKE_SOURCE_DIR}/assets/")
 
 #find_package(OpenGL REQUIRED)
 
