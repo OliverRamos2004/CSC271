@@ -19,6 +19,7 @@ add_executable(CSC271 main.cpp
         src/shaderprogram.cpp
         src/stb_image.cpp
         include/stb_image.h
+        include/mesh.h
 )
 
 add_compile_definitions(SHADER_DIR="${CMAKE_SOURCE_DIR}/shaders/")

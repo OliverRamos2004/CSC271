@@ -15,3 +15,8 @@ Study vec4.In's and out's (out vec4 (X));
 Review section on declaring in and out, as they will tell you the inputs and outputs from different files.
 Study Layout syntax - glVertexAttribPointer(0,3,GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); -- retrieves location
 and puts it in a pointer
+
+
+Week of 09/25/2026
+
+png has 1 additional alpha chanel compared to the 3 jpeg has
