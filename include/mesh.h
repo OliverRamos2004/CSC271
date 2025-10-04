@@ -9,18 +9,18 @@
 #include "glad/glad.h"
 #include "cstddef"
 
-struct VetexAttribute {
+struct VertexAttribute {
     GLuint pos;
-    Glint size;
-    Glenum type;
-    Glboolean normalized;
-    glsizei stride;
+    GLint size;
+    GLenum type;
+    GLboolean normalized;
+    GLsizei stride;
     size_t offset;
 };
 
 struct TextureSpec {
-    std::string name;
-    unisigned int TextureObj;
+    std::string name; // HERE
+    unsigned int TextureObj;
     GLuint shaderProgramID;
     GLint layout;
     std::string path;

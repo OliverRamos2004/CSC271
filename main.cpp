@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 #include "shaderprogram.h"
 #include "stb_image.h"
+#include "mesh.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);  // 09/04 -- explain
 
@@ -34,7 +35,7 @@ int main() {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "Failed to initialize GLAD\n";
         return -1;
-        }
+    }
 
     // First Shader Program
     std::string vertPath = std::string(SHADER_DIR) + "vertex.vert";
@@ -42,7 +43,7 @@ int main() {
     ShaderProgram shaderProgram(vertPath, fragPath);
     shaderProgram.use();
 
-    float vertices[] = {
+    const std::vector<float> vertices= {
         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,1.0f,
         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
         -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
@@ -50,10 +51,30 @@ int main() {
 
     };
 
-    unsigned int indices[] = {
-    0, 1, 2,
-    0, 2, 3
-        };
+    const std::vector<unsigned int> indices = {
+        0, 1, 2,
+        0, 2, 3
+            };
+
+    const GLuint prog = shaderProgram.getID();
+    const GLint posLoc = glGetAttribLocation(prog, "aPos");
+    const GLint colLoc = glGetAttribLocation(prog, "aCol");
+    const GLint uvLoc = glGetAttribLocation(prog, "aTexCoord");
+
+    const GLsizei stride = 8 * sizeof(float);
+    std::vector<VertexAttribute> attributes = {
+        VertexAttribute{static_cast<GLuint>(posLoc), 3, GL_FLOAT, GL_FALSE, stride, 0},
+        VertexAttribute{static_cast<GLuint>(colLoc), 3, GL_FLOAT, GL_FALSE, stride, 3 *sizeof(float)},
+        VertexAttribute{static_cast<GLuint>(uvLoc), 2, GL_FLOAT, GL_FALSE, stride, 6 *sizeof(float)}
+    };
+
+    std::vector<TextureSpec> textures = {
+        TextureSpec{"texture1", 0, prog, 0, std::string(ASSETS_DIR) + "wall.jpg", false},
+        TextureSpec{"texture2", 0, prog, 1, std::string(ASSETS_DIR) + "wall.jpg", false}
+    };
+
+    Mesh quad(vertices, indices, attributes, textures);
+
 
     int width, height, nrChannels;
     std:: string texPath = std::string(ASSETS_DIR) + "wall.jpg";
@@ -116,7 +137,7 @@ int main() {
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
     GLint posAttrib = glGetAttribLocation(shaderProgram.getID(), "aPOS"); // -- ERROR
     glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
@@ -131,7 +152,7 @@ int main() {
     glEnableVertexAttribArray(colAttrib);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
 
     glBindVertexArray(0);
@@ -140,6 +161,8 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(window, true);
+
+        quad.draw();
 
         // RENDERING //
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -160,10 +183,7 @@ int main() {
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-
+    quad.cleanup();
     shaderProgram.destroy();
     glfwTerminate();
     return 0;

@@ -20,3 +20,7 @@ and puts it in a pointer
 Week of 09/25/2026
 
 png has 1 additional alpha chanel compared to the 3 jpeg has
+
+NOTES:
+
+Know the dot product between two vectors (dont worry about the computations too much) & Be familiar with transformation matrices.
