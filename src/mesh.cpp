@@ -46,18 +46,28 @@ void Mesh::loadTexturesFromFile_(const std::vector<TextureSpec> &t) {
             GLint internal = (ch == 4) ? GL_RGBA : GL_RGB;
 
             glGenTextures(1, &textures[i].TextureObj);
-            glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + static_cast<GLenum>(i)));
+            glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textures[i].layout));
             glBindTexture(GL_TEXTURE_2D, textures[i].TextureObj);
 
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            if (i == 0) {
+                // textures[0] = container
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            } else {
+                // textures[1] = smiley
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            }
+
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
             glTexImage2D(GL_TEXTURE_2D, 0, internal, w, h, 0, srcFormat, GL_UNSIGNED_BYTE, data);
             glGenerateMipmap(GL_TEXTURE_2D);
             stbi_image_free(data);
-            glUniform1i(glGetUniformLocation(textures[i].shaderProgramID, textures[i].name.c_str()), textures[i].layout);
+            glUseProgram(textures[i].shaderProgramID);
+            glUniform1i(glGetUniformLocation(textures[i].shaderProgramID, textures[i].name.c_str()),
+                        textures[i].layout);
         }
     }
 }

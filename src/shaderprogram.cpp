@@ -91,3 +91,10 @@ void ShaderProgram::destroy() {
         isDeleted = true;
     }
 }
+// 10/05/25
+void ShaderProgram::set1i(const char* name, int v) {
+    glUniform1i(glGetUniformLocation(ID, name), v);
+}
+void ShaderProgram::set1f(const char* name, float v) {
+    glUniform1f(glGetUniformLocation(ID, name), v);
+}

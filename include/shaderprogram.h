@@ -9,12 +9,15 @@
 
 
 class ShaderProgram{
-  public: // What does this mean??
+  public:
     ShaderProgram(const std::string& vertex_path, const std::string& fragmentPath); // Constructor must be public
     ~ShaderProgram();
 
     void use() const;
     GLuint getID() const;
+
+    void set1i(const char* name, int v); // HW2 10/05/25
+    void set1f(const char* name, float v);
 
     void destroy();
 
