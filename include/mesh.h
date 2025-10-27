@@ -8,6 +8,9 @@
 #include <string>
 #include "glad/glad.h"
 #include "cstddef"
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
+#include <gtc/type_ptr.hpp>
 
 struct VertexAttribute {
     GLuint pos;
@@ -26,15 +29,29 @@ struct TextureSpec {
     std::string path;
     bool flipVertical = false;
 };
+
+struct Transformation {
+    std::string name;
+    GLuint shaderProgramID;
+    GLint layout;
+    glm::mat4 m;
+
+
+};
 class Mesh {
 public:
     Mesh(const std::vector<float>& vertices,
         const std::vector<unsigned int>& indices,
         const std::vector<VertexAttribute>& attributes,
-        const std::vector<TextureSpec>& textures);
+        const std::vector<TextureSpec>& textures,
+        // const Transformation & trans,
+        const Transformation & M,
+        const Transformation & V,
+        const Transformation & P);
+
     ~Mesh();
 
-    void draw() const;
+    void draw(glm::mat4 M, glm::mat4 V, glm::mat4 P ) const;
     void bind() const;
     void unbind() const;
     void cleanup();
@@ -51,6 +68,7 @@ private:
     GLuint VAO=0, VBO=0, EBO=0;
     GLsizei indexCount=0;
     std::vector<TextureSpec> textures;
+    Transformation _M, _V, _P;
 
 };
 

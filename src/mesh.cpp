@@ -62,8 +62,23 @@ void Mesh::loadTexturesFromFile_(const std::vector<TextureSpec> &t) {
     }
 }
 
-Mesh::Mesh(const std::vector<float> &vertices, const std::vector<unsigned int> &indices, const std::vector<VertexAttribute> &attributes
-    ,const std::vector<TextureSpec> &textures) {
+Mesh::Mesh(const std::vector<float> &vertices, const std::vector<unsigned int> &indices,
+            const std::vector<VertexAttribute> &attributes,
+            const std::vector<TextureSpec> &textures, const Transformation &M, const Transformation &V, const Transformation &P) { // update
+
+    _M = M; _V = V; _P = P;
+
+    _M.layout = glGetUniformLocation(_M.shaderProgramID, _M.name.c_str());
+    glUniformMatrix4fv(_M.layout, 1, GL_FALSE, glm::value_ptr(_M.m));
+
+    // #2
+    _V.layout = glGetUniformLocation(_V.shaderProgramID, _V.name.c_str());
+    glUniformMatrix4fv(_V.layout, 1, GL_FALSE, glm::value_ptr(_V.m));
+
+    // #3
+    _P.layout = glGetUniformLocation(_P.shaderProgramID, _P.name.c_str());
+    glUniformMatrix4fv(_P.layout, 1, GL_FALSE, glm::value_ptr(_P.m));
+
     createBuffers_(vertices, indices, attributes);
     loadTexturesFromFile_(textures);
 }
@@ -72,8 +87,11 @@ Mesh::~Mesh() {
     cleanup();
 }
 
-void Mesh:: draw() const {
+void Mesh:: draw(glm::mat4 m, glm::mat4 v, glm::mat4 p) const {
     bind();
+    glUniformMatrix4fv(_M.layout, 1, GL_FALSE, glm::value_ptr(m));
+    glUniformMatrix4fv(_V.layout, 1, GL_FALSE, glm::value_ptr(v));
+    glUniformMatrix4fv(_P.layout, 1, GL_FALSE, glm::value_ptr(p));
     glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
     unbind();
 }
@@ -88,7 +106,7 @@ void Mesh::unbind() const {
 
 void Mesh::cleanup() {
     for(auto& t:textures) {
-        glDeleteTextures(1, &t.TextureObj); // error
+        glDeleteTextures(1, &t.TextureObj);
     }
     textures.clear();
     if(VAO){glDeleteVertexArrays(1, &VAO); VAO = 0;}

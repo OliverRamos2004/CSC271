@@ -23,4 +23,10 @@ png has 1 additional alpha chanel compared to the 3 jpeg has
 
 NOTES:
 
-Know the dot product between two vectors (dont worry about the computations too much) & Be familiar with transformation matrices.
+Know the dot product between two vectors (don't worry about the computations too much) & Be familiar with transformation matrices.
+
+Learn the order for calling transformation functions
+
+Understand ideas for illustrated perspection and projection matrices. Understand differences and explain both projections
+
+--- study 5.4.4 From Clip Space to Normalize Device Space

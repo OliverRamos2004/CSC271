@@ -7,6 +7,7 @@
 #include "stb_image.h"
 #include "mesh.h"
 
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);  // 09/04 -- explain
 
 int main() {
@@ -57,8 +58,8 @@ int main() {
             };
 
     const GLuint prog = shaderProgram.getID();
-    const GLint posLoc = glGetAttribLocation(prog, "aPos");
-    const GLint colLoc = glGetAttribLocation(prog, "aCol");
+    const GLint posLoc = glGetAttribLocation(prog, "aPOS");
+    const GLint colLoc = glGetAttribLocation(prog, "aColor");
     const GLint uvLoc = glGetAttribLocation(prog, "aTexCoord");
 
     const GLsizei stride = 8 * sizeof(float);
@@ -70,114 +71,46 @@ int main() {
 
     std::vector<TextureSpec> textures = {
         TextureSpec{"texture1", 0, prog, 0, std::string(ASSETS_DIR) + "wall.jpg", false},
-        TextureSpec{"texture2", 0, prog, 1, std::string(ASSETS_DIR) + "wall.jpg", false}
+        TextureSpec{"texture2", 0, prog, 1, std::string(ASSETS_DIR) + "awesomeface.png", true}
     };
 
-    Mesh quad(vertices, indices, attributes, textures);
 
 
-    int width, height, nrChannels;
-    std:: string texPath = std::string(ASSETS_DIR) + "wall.jpg";
-    unsigned char *data = stbi_load(texPath.c_str(),&width, &height, &nrChannels, 0);
-
-    unsigned int texture1;
-    glGenTextures(1, &texture1);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    if(data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else {
-        std::cerr << "Failed to load texture\n";
-    };
-    glUniform1i(glGetUniformLocation(shaderProgram.getID(), "texture1"), 0);
-    stbi_image_free(data);
-
-    texPath = std::string(ASSETS_DIR) + "awesomeface.png";
-    stbi_set_flip_vertically_on_load(true);
-    data = stbi_load(texPath.c_str(),&width, &height, &nrChannels, 0);
-
-    unsigned int texture2;
-    glGenTextures(1, &texture2);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, texture2);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    if(data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else {
-        std::cerr << "Failed to load texture\n";
-    };
-    glUniform1i(glGetUniformLocation(shaderProgram.getID(), "texture2"), 1);
-    stbi_image_free(data);
+    Transformation M = {"model", prog, 0, glm::mat4(1.0f)};
+    Transformation V = {"view", prog, 0, glm::mat4(1.0f)};
+    Transformation P = {"projection", prog, 0, glm::mat4(1.0f)};
+    Mesh quad(vertices, indices, attributes, textures, M, V, P); // ADD MOR E TRANSFORMATION MATRIX
 
 
 
-
-
-    // BUFFERS
-    // Vertex buffer object
-    // Vertex array buffer object
-    unsigned int VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-    GLint posAttrib = glGetAttribLocation(shaderProgram.getID(), "aPOS"); // -- ERROR
-    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(posAttrib);
-
-    GLint texAttrib = glGetAttribLocation(shaderProgram.getID(), "aTexCoord"); // -- ERROR
-    glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6*sizeof(float)));
-    glEnableVertexAttribArray(texAttrib);
-
-    GLint colAttrib = glGetAttribLocation(shaderProgram.getID(), "aColor"); // -- ERROR
-    glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3*sizeof(float)));
-    glEnableVertexAttribArray(colAttrib);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-
-
-    glBindVertexArray(0);
 
 
     while (!glfwWindowShouldClose(window)) {
-        if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(window, true);
-
-        quad.draw();
-
-        // RENDERING //
+        }
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // float timeValue = glfwGetTime();
-        // float greenValue = (sin(timeValue) / 2.0f) + 0.5; // -- ERROR
-        // int vertexColorLocation = glGetUniformLocation(shaderProgram.getID(), "ourColor");
-        // glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+        glm::mat4 view = glm::mat4(1.0f);
+        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
 
-        glBindVertexArray(VAO);
-        // glActiveTexture(GL_TEXTURE0); here maybe
-        // glBindTexture(GL_TEXTURE_2D, texture1);
-        // glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        // First container - rotating
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.5f, -0.5f, 0.0f));
+        model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+
+        quad.draw(model, view, projection);
+
+        // Second container - Top-left corner, scaling over time
+        glm::mat4 model2 = glm::mat4(1.0f);
+        model2 = glm::translate(model2, glm::vec3(-0.8f, 0.8f, 0.0f));
+        float scaleAmount = sin(glfwGetTime()) * 0.25f + 1.0f;
+        model2 = glm::scale(model2, glm::vec3(scaleAmount, scaleAmount, scaleAmount));
+
+        quad.draw(model2, view, projection);
+
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -188,9 +121,8 @@ int main() {
     glfwTerminate();
     return 0;
 
-}
 
-// 09/04 -- This is a function
+}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);

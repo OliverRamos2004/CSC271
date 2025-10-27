@@ -5,10 +5,12 @@ in vec2 aTexCoord;
 out vec4 vertexColor;
 out vec2 TexCoord;
 
+uniform mat4 model; // uniform Means never changes
+uniform mat4 view;
+uniform mat4 projection;
+
 void main(){
-    gl_Position = vec4(aPOS, 1.0);
+    gl_Position = projection * view * model  * vec4(aPOS, 1.0);
     vertexColor = vec4(aColor, 1.0);
     TexCoord = aTexCoord;
 }
-// Output is gl_position: Create data, create buffer, link data, use shader.
-//    vertexColor = v FIX

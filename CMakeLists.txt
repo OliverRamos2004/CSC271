@@ -5,10 +5,13 @@ set(CMAKE_CXX_STANDARD 17)
 # Add directories
 include_directories(${CMAKE_SOURCE_DIR}/glfw-3.4.bin.WIN64/include
         ${CMAKE_SOURCE_DIR}/glad/include
-        include)
+        include
+        ${CMAKE_SOURCE_DIR}/glm-1.0.1/glm
+        ${CMAKE_SOURCE_DIR}/src)
 
 
-#Add the directory containng the compiled GLFW library to the linker's search path
+
+#Add the directory containing the compiled GLFW library to the linker's search path
 LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/glfw-3.4.bin.WIN64/lib-mingw-w64)
 
 # Add GLAD source file
@@ -32,6 +35,6 @@ add_compile_definitions(ASSETS_DIR="${CMAKE_SOURCE_DIR}/assets/")
 # Link GLFW, GLAD, and framework
 target_link_libraries(CSC271
         glad
-        glfw3
+        glfw3.dll
         opengl32
 )
