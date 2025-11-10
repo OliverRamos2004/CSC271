@@ -1,16 +1,17 @@
-// Created by Oliver Ramos on 9/9/25
-
-#ifndef DEMO_SHADERPROGRAM_H
-#define DEMO_SHADERPROGRAM_H
+#ifndef SHADERPROGRAM_H
+#define SHADERPROGRAM_H
 
 #include <string>
-#include <glad/glad.h>
+#include "glad/glad.h"
 #include "GLFW/glfw3.h"
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
+#include <gtc/type_ptr.hpp>
+#include "stb_image.h"
 
-
-class ShaderProgram{
-  public: // What does this mean??
-    ShaderProgram(const std::string& vertex_path, const std::string& fragmentPath); // Constructor must be public
+class ShaderProgram {
+public:
+    ShaderProgram(const std::string& vertexPath, const std::string& fragmentPath);
     ~ShaderProgram();
 
     void use() const;
@@ -18,11 +19,26 @@ class ShaderProgram{
 
     void destroy();
 
-    private:
-      GLuint ID;
-      bool isDeleted = false;
-      std::string loadShaderSource(const std::string& filePath); // FIX THIS
-      GLuint compileShader(const std::string& source, GLenum shaderType);
-      void linkProgram(GLuint vertexShader, GLuint fragmentShader);
+    // Set uniform variables of various types
+    void setUniform(const std::string& name, int value) const;
+    void setUniform(const std::string& name, float value) const;
+    void setUniform(const std::string& name, const glm::vec3& value) const;
+    void setUniform(const std::string& name, const glm::mat4& value) const;
+    GLuint bindTexture2D(const std::string& samplerName,
+                         const std::string& filePath,
+                         GLint textureUnit,
+                         bool flipVertical = true,
+                         GLint wrap = GL_REPEAT,
+                         GLint minFilter = GL_LINEAR_MIPMAP_LINEAR,
+                         GLint magFilter = GL_LINEAR,
+                         bool generateMipmaps = true) const;
+private:
+    GLuint ID;
+    bool isDeleted = false;
+
+    std::string loadShaderSource(const std::string& filePath);
+    static GLuint compileShader(const std::string& source, GLenum shaderType);
+    void linkProgram(GLuint vertexShader, GLuint fragmentShader);
 };
+
 #endif

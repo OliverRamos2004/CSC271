@@ -1,198 +1,168 @@
-#include <cmath>
 #include <iostream>
-#include <math.h>
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include "glad/glad.h"
+#include "GLFW/glfw3.h"
 #include "shaderprogram.h"
 #include "stb_image.h"
 #include "mesh.h"
+#include "camera.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);  // 09/04 -- explain
+
+
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+float deltaTime = 0.0f;	// Time between current frame and last frame
+float lastFrame = 0.0f; // Time of last frame
+
+int SCR_WIDTH = 800;
+int SCR_LENGTH = 600;
+Camera camera;
+
+// Custom LookAt (manual view matrix)
+glm::mat4 MyLookAt(const glm::vec3& position,
+                   const glm::vec3& target,
+                   const glm::vec3& up) {
+    glm::vec3 zaxis = glm::normalize(position - target);                 // forward
+    glm::vec3 xaxis = glm::normalize(glm::cross(glm::normalize(up), zaxis)); // right
+    glm::vec3 yaxis = glm::cross(zaxis, xaxis);                          // up
+
+    glm::mat4 view(1.0f);
+    view[0][0] = xaxis.x; view[1][0] = xaxis.y; view[2][0] = xaxis.z; view[3][0] = -glm::dot(xaxis, position);
+    view[0][1] = yaxis.x; view[1][1] = yaxis.y; view[2][1] = yaxis.z; view[3][1] = -glm::dot(yaxis, position);
+    view[0][2] = zaxis.x; view[1][2] = zaxis.y; view[2][2] = zaxis.z; view[3][2] = -glm::dot(zaxis, position);
+
+
+    return view;
+}
+
 
 int main() {
     if (!glfwInit()) {
-        std::cerr << "Failed to initialize GLFW";
+        std::cerr << "Failed to initialize GLFW\n";
         return -1;
     }
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-
-    GLFWwindow *window = glfwCreateWindow(640, 480, "CSC271", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_LENGTH, "Hello CG", nullptr, nullptr);
     if (!window) {
-        std::cerr << "Failed to create GLFW window";
+        std::cerr << "Failed to create GLFW window\n";
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);  // 09/04 -- explain
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "Failed to initialize GLAD\n";
         return -1;
     }
 
-    // First Shader Program
-    std::string vertPath = std::string(SHADER_DIR) + "vertex.vert";
-    std::string fragPath = std::string(SHADER_DIR) + "fragment.frag";
-    ShaderProgram shaderProgram(vertPath, fragPath);
-    shaderProgram.use();
+    std::string vertPath = std::string(SHADER_DIR) + "cube_vertex.vert";
+    std::string fragPath = std::string(SHADER_DIR) + "container_fragment.frag";
+    ShaderProgram containerShaderProgram(vertPath, fragPath);
 
-    const std::vector<float> vertices= {
-        0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,1.0f,
-        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-        -0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    vertPath = std::string(SHADER_DIR) + "cube_vertex.vert";
+    fragPath = std::string(SHADER_DIR) + "light_fragment.frag";
+    ShaderProgram lightShaderProgram(vertPath, fragPath);
 
-    };
-
-    const std::vector<unsigned int> indices = {
-        0, 1, 2,
-        0, 2, 3
-            };
-
-    const GLuint prog = shaderProgram.getID();
-    const GLint posLoc = glGetAttribLocation(prog, "aPos");
-    const GLint colLoc = glGetAttribLocation(prog, "aCol");
-    const GLint uvLoc = glGetAttribLocation(prog, "aTexCoord");
-
-    const GLsizei stride = 8 * sizeof(float);
-    std::vector<VertexAttribute> attributes = {
-        VertexAttribute{static_cast<GLuint>(posLoc), 3, GL_FLOAT, GL_FALSE, stride, 0},
-        VertexAttribute{static_cast<GLuint>(colLoc), 3, GL_FLOAT, GL_FALSE, stride, 3 *sizeof(float)},
-        VertexAttribute{static_cast<GLuint>(uvLoc), 2, GL_FLOAT, GL_FALSE, stride, 6 *sizeof(float)}
-    };
-
-    std::vector<TextureSpec> textures = {
-        TextureSpec{"texture1", 0, prog, 0, std::string(ASSETS_DIR) + "wall.jpg", false},
-        TextureSpec{"texture2", 0, prog, 1, std::string(ASSETS_DIR) + "wall.jpg", false}
-    };
-
-    Mesh quad(vertices, indices, attributes, textures);
-
-
-    int width, height, nrChannels;
-    std:: string texPath = std::string(ASSETS_DIR) + "wall.jpg";
-    unsigned char *data = stbi_load(texPath.c_str(),&width, &height, &nrChannels, 0);
-
-    unsigned int texture1;
-    glGenTextures(1, &texture1);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    if(data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else {
-        std::cerr << "Failed to load texture\n";
-    };
-    glUniform1i(glGetUniformLocation(shaderProgram.getID(), "texture1"), 0);
-    stbi_image_free(data);
-
-    texPath = std::string(ASSETS_DIR) + "awesomeface.png";
-    stbi_set_flip_vertically_on_load(true);
-    data = stbi_load(texPath.c_str(),&width, &height, &nrChannels, 0);
-
-    unsigned int texture2;
-    glGenTextures(1, &texture2);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, texture2);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    if(data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else {
-        std::cerr << "Failed to load texture\n";
-    };
-    glUniform1i(glGetUniformLocation(shaderProgram.getID(), "texture2"), 1);
-    stbi_image_free(data);
-
-
-
-
-
-    // BUFFERS
-    // Vertex buffer object
-    // Vertex array buffer object
-    unsigned int VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-    GLint posAttrib = glGetAttribLocation(shaderProgram.getID(), "aPOS"); // -- ERROR
-    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(posAttrib);
-
-    GLint texAttrib = glGetAttribLocation(shaderProgram.getID(), "aTexCoord"); // -- ERROR
-    glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6*sizeof(float)));
-    glEnableVertexAttribArray(texAttrib);
-
-    GLint colAttrib = glGetAttribLocation(shaderProgram.getID(), "aColor"); // -- ERROR
-    glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3*sizeof(float)));
-    glEnableVertexAttribArray(colAttrib);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-
-
-    glBindVertexArray(0);
+    Mesh container(std::string(ASSETS_DIR) + "box.obj", containerShaderProgram.getID());
+    Mesh light(std::string(ASSETS_DIR) + "box.obj", lightShaderProgram.getID());
 
 
     while (!glfwWindowShouldClose(window)) {
-        if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-            glfwSetWindowShouldClose(window, true);
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+        camera.ProcessKeyboard(window, deltaTime);
 
-        quad.draw();
-
-        // RENDERING //
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // float timeValue = glfwGetTime();
-        // float greenValue = (sin(timeValue) / 2.0f) + 0.5; // -- ERROR
-        // int vertexColorLocation = glGetUniformLocation(shaderProgram.getID(), "ourColor");
-        // glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+        containerShaderProgram.use();
+        glm::vec3 lightPos(1.5f, 0.0f, 0.0f);
+        glm::vec3 objectColor(1.0f, 0.5f, 0.31f);
+        glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
-        glBindVertexArray(VAO);
-        // glActiveTexture(GL_TEXTURE0); here maybe
-        // glBindTexture(GL_TEXTURE_2D, texture1);
-        // glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glm::mat4 model = glm::mat4(1.0f);
+        glm::mat4 view = MyLookAt(camera.Position, camera.Position + camera.Front, camera.Up); // Changed this
+        glm::mat4 projection = camera.GetProjection(SCR_WIDTH/SCR_LENGTH);
+
+        containerShaderProgram.setUniform("lightPos", lightPos);
+        //containerShaderProgram.setUniform("objectColor", objectColor);
+        containerShaderProgram.setUniform("lightColor", lightColor);
+        containerShaderProgram.setUniform("viewPos", camera.Position);
+
+        containerShaderProgram.setUniform("model", model);
+        containerShaderProgram.setUniform("view", view);
+        containerShaderProgram.setUniform("projection", projection);
+
+        containerShaderProgram.setUniform("material.ambient", glm::vec3(0.1f, 0.05f, 0.031f));
+        containerShaderProgram.setUniform("material.diffuse", glm::vec3(1.0f, 0.5f, 0.31f));
+        containerShaderProgram.setUniform("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+        containerShaderProgram.setUniform("material.shininess", 32.0f);
+
+        container.draw();
+
+        lightShaderProgram.use();
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(0.2f));
+
+        lightShaderProgram.setUniform("model", model);
+        lightShaderProgram.setUniform("view", view);
+        lightShaderProgram.setUniform("projection", projection);
+
+
+        light.draw();
+
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    quad.cleanup();
-    shaderProgram.destroy();
     glfwTerminate();
     return 0;
-
 }
 
-// 09/04 -- This is a function
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
     glViewport(0, 0, width, height);
-    std::cout << width << " " << height << std::endl;
+    std::cout<< width << " " << height << std::endl;
+}
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (camera.firstMouse)
+    {
+        camera.lastX = xpos;
+        camera.lastY = ypos;
+        camera.firstMouse = false;
+    }
+
+    float xoffset = xpos - camera.lastX;
+    float yoffset = camera.lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    camera.lastX = xpos;
+    camera.lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }

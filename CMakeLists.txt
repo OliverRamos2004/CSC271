@@ -1,35 +1,43 @@
-cmake_minimum_required(VERSION 3.29)
+# Specify the minimum required version of CMake to process this file
+cmake_minimum_required(VERSION 3.27)
+
+# Declare the name of the project
 project(CSC271)
+
+# Set the C++ standard
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Add directories
-include_directories(${CMAKE_SOURCE_DIR}/glfw-3.4.bin.WIN64/include
+# Include directories
+include_directories(
+        ${CMAKE_SOURCE_DIR}/glfw-3.4.bin.WIN64/include
         ${CMAKE_SOURCE_DIR}/glad/include
-        include)
+        include
+        ${CMAKE_SOURCE_DIR}/glm-1.0.1
+        ${CMAKE_SOURCE_DIR}/glm-1.0.1/glm
+)
 
-
-#Add the directory containng the compiled GLFW library to the linker's search path
-LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/glfw-3.4.bin.WIN64/lib-mingw-w64)
+# Link directories
+link_directories(${CMAKE_SOURCE_DIR}/glfw-3.4.bin.WIN64/lib-mingw-w64)
 
 # Add GLAD source file
 add_library(glad ${CMAKE_SOURCE_DIR}/glad/src/glad.c)
 
-# Define the executable
-add_executable(CSC271 main.cpp
+# Define the executable target (make sure main.cpp is included!)
+add_executable(CSC271
+        main.cpp
         src/shaderprogram.cpp
         src/stb_image.cpp
-        include/stb_image.h
-        include/mesh.h
         src/mesh.cpp
-
+        src/tiny_obj_loader.cpp
+        src/camera.cpp
 )
 
+# Compile-time definitions for directories
 add_compile_definitions(SHADER_DIR="${CMAKE_SOURCE_DIR}/shaders/")
 add_compile_definitions(ASSETS_DIR="${CMAKE_SOURCE_DIR}/assets/")
 
-#find_package(OpenGL REQUIRED)
-
-# Link GLFW, GLAD, and framework
+# Link the libraries
 target_link_libraries(CSC271
         glad
         glfw3
