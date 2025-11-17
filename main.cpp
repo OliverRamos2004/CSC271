@@ -100,19 +100,29 @@ int main() {
         glm::mat4 view = MyLookAt(camera.Position, camera.Position + camera.Front, camera.Up); // Changed this
         glm::mat4 projection = camera.GetProjection(SCR_WIDTH/SCR_LENGTH);
 
-        containerShaderProgram.setUniform("lightPos", lightPos);
+        // containerShaderProgram.setUniform("lightPos", lightPos);
         //containerShaderProgram.setUniform("objectColor", objectColor);
-        containerShaderProgram.setUniform("lightColor", lightColor);
+        // containerShaderProgram.setUniform("lightColor", lightColor);
         containerShaderProgram.setUniform("viewPos", camera.Position);
 
         containerShaderProgram.setUniform("model", model);
         containerShaderProgram.setUniform("view", view);
         containerShaderProgram.setUniform("projection", projection);
 
-        containerShaderProgram.setUniform("material.ambient", glm::vec3(0.1f, 0.05f, 0.031f));
-        containerShaderProgram.setUniform("material.diffuse", glm::vec3(1.0f, 0.5f, 0.31f));
-        containerShaderProgram.setUniform("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
         containerShaderProgram.setUniform("material.shininess", 32.0f);
+
+        // containerShaderProgram.setUniform("light.position", lightPos);
+        //containerShaderProgram.setUniform("pointLight.direction", glm::vec3(-0.2f, -1.0f, -0.3f));
+        containerShaderProgram.setUniform("pointLight.ambient", glm::vec3(0.1f, 0.1f, 0.1f));
+        containerShaderProgram.setUniform("pointLight.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
+        containerShaderProgram.setUniform("pointLight.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+
+        containerShaderProgram.setUniform("pointLight.constant", 1.0f);
+        containerShaderProgram.setUniform("pointLight.linear", 0.09f);
+        containerShaderProgram.setUniform("pointLight.quadratic", 0.032f);
+
+        containerShaderProgram.bindTexture2D("material.diffuse", std::string(ASSETS_DIR) + "container2.png", 0, false);
+        containerShaderProgram.bindTexture2D("material.specular", std::string(ASSETS_DIR) + "container2_specular.png", 1, false);
 
         container.draw();
 
