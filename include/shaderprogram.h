@@ -8,6 +8,7 @@
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
 #include "stb_image.h"
+#include <vector>
 
 class ShaderProgram {
 public:
@@ -32,6 +33,14 @@ public:
                          GLint minFilter = GL_LINEAR_MIPMAP_LINEAR,
                          GLint magFilter = GL_LINEAR,
                          bool generateMipmaps = true) const;
+
+    GLuint bindCubeMap(const std::string& samplerName,
+                   const std::vector<std::string>& faces,
+                   GLint textureUnit,
+                   bool flipVertical = false,
+                   GLint wrap = GL_CLAMP_TO_EDGE,
+                   GLint minFilter = GL_LINEAR,
+                   GLint magFilter = GL_LINEAR) const;
 private:
     GLuint ID;
     bool isDeleted = false;

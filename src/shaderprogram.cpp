@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <vector>
 
 
 std::string ShaderProgram::loadShaderSource(const std::string& filePath) {
@@ -193,4 +194,59 @@ GLuint ShaderProgram::bindTexture2D(const std::string& samplerName,
     }
 
     return texID;
+}
+
+GLuint ShaderProgram::bindCubeMap(const std::string& samplerName,
+                   const std::vector<std::string>& faces,
+                   GLint textureUnit,
+                   bool flipVertical,
+                   GLint wrap,
+                   GLint minFilter,
+                   GLint magFilter) const{
+
+    use();
+    stbi_set_flip_vertically_on_load(flipVertical? 1 : 0);
+
+    GLuint texID = 0;
+    glGenTextures(1, &texID);
+
+    glActiveTexture(GL_TEXTURE0 + textureUnit);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texID);
+
+    int w = 0, h = 0, ch = 0;
+    for(int i = 0; i < faces.size(); ++i){
+        unsigned char* data = stbi_load(faces[i].c_str(), &w, &h, &ch, 0);
+        if(!data){
+            std::cerr << "Failed to load cubmap face: " << faces[i] << std::endl;
+            break;
+        }
+        GLenum srcFormat = GL_RGB;
+        GLint  internal  = GL_RGB;
+        if (ch == 4) { srcFormat = GL_RGBA; internal = GL_RGBA; }
+        else if (ch == 3) { srcFormat = GL_RGB; internal = GL_RGB; }
+        else if (ch == 1) { srcFormat = GL_RED; internal = GL_RED; }
+
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + static_cast<GLenum>(i),
+                     0, internal, w, h, 0,
+                     srcFormat, GL_UNSIGNED_BYTE, data);
+
+        stbi_image_free(data);
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, wrap);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, wrap);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, wrap);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, minFilter);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, magFilter);
+
+    GLint loc = glGetUniformLocation(ID, samplerName.c_str());
+    if(loc >= 0){
+        glUniform1i(loc, textureUnit);
+    }else{
+        std::cerr <<"Warning: samplercube uniform not found!" << std::endl;
+    }
+
+    return texID;
+
+
 }
