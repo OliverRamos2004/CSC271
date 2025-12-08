@@ -62,7 +62,7 @@ int main() {
     ShaderProgram containerShaderProgram(vertPath, fragPath);
     GLuint cube_diffuse = containerShaderProgram.bindTexture2D("material.diffuse", std::string(ASSETS_DIR) + "container2.png", 0, false);
     GLuint cube_specular = containerShaderProgram.bindTexture2D("material.specular", std::string(ASSETS_DIR) + "container2_specular.png", 1, false);
-    containerShaderProgram.bindCubeMap("skybox", faces, 2);
+    // containerShaderProgram.bindCubeMap("skybox", faces, 2);
     containerShaderProgram.setUniform("material.shininess", 32.0f);
     containerShaderProgram.setUniform("material.alpha",     1.0f);
 
@@ -92,16 +92,68 @@ int main() {
             glm::vec3(-1.3f,  1.0f, -1.5f)
     };
 
-    gfx::SceneConfig cfg = gfx::makeDefaultSceneConfig();
+    // ----------------------------------------------------
+    // LIGHT SETUP
+    // ----------------------------------------------------
+    gfx::SceneConfig cfg;
 
-    cfg.dirLights.resize(1);
+    // 1) Directional light (use default values)
+    cfg.dirLights.clear();
+    cfg.dirLights.push_back(gfx::DirLightConfig{});  // one "sun" light
+
+    // 2) Three colored point lights
     cfg.pointLights.clear();
+
+    // Red point light
+    {
+        gfx::PointLightConfig p;
+        p.position  = glm::vec3(2.0f, 1.0f, 1.0f);
+        p.ambient   = glm::vec3(0.05f, 0.0f, 0.0f);
+        p.diffuse   = glm::vec3(1.0f, 0.0f, 0.0f);
+        p.specular  = glm::vec3(1.0f, 0.5f, 0.5f);
+        // attenuation stays as default
+        cfg.pointLights.push_back(p);
+    }
+
+    // Green point light
+    {
+        gfx::PointLightConfig p;
+        p.position  = glm::vec3(-2.0f, 1.0f, 1.0f);
+        p.ambient   = glm::vec3(0.0f, 0.05f, 0.0f);
+        p.diffuse   = glm::vec3(0.0f, 1.0f, 0.0f);
+        p.specular  = glm::vec3(0.5f, 1.0f, 0.5f);
+        cfg.pointLights.push_back(p);
+    }
+
+    // Blue point light
+    {
+        gfx::PointLightConfig p;
+        p.position  = glm::vec3(0.0f, 1.5f, -3.0f);
+        p.ambient   = glm::vec3(0.0f, 0.0f, 0.05f);
+        p.diffuse   = glm::vec3(0.0f, 0.0f, 1.0f);
+        p.specular  = glm::vec3(0.5f, 0.5f, 1.0f);
+        cfg.pointLights.push_back(p);
+    }
+
+    // 3) Spotlight (flashlight) – we set static parts here
     cfg.spotLights.clear();
-    gfx::applyDirLights(containerShaderProgram,   cfg.dirLights);
-    gfx::applyPointLights(containerShaderProgram, cfg.pointLights);
-    gfx::applySpotLights(containerShaderProgram,  cfg.spotLights);
+    {
+        gfx::SpotLightConfig s;
+        // we will update s.position and s.direction each frame
+        s.ambient     = glm::vec3(0.0f, 0.0f, 0.0f);
+        s.diffuse     = glm::vec3(1.0f, 1.0f, 1.0f);
+        s.specular    = glm::vec3(1.0f, 1.0f, 1.0f);
+        s.constant    = 1.0f;
+        s.linear      = 0.09f;
+        s.quadratic   = 0.032f;
+        s.cutOff      = glm::cos(glm::radians(12.5f));
+        s.outerCutOff = glm::cos(glm::radians(17.5f));
+        cfg.spotLights.push_back(s);
+    }
 
 
+
+    // RENDER LOOP
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -112,7 +164,22 @@ int main() {
         glEnable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        //objects
+        // ------------------------------------------------
+        // UPDATE LIGHTS EACH FRAME
+        // ------------------------------------------------
+
+        // Make spotlight (flashlight) follow the camera
+        cfg.spotLights[0].position  = camera.Position;
+        cfg.spotLights[0].direction = camera.Front;
+
+        // Send all light data to the object shader
+        gfx::applyDirLights(  containerShaderProgram, cfg.dirLights);
+        gfx::applyPointLights(containerShaderProgram, cfg.pointLights);
+        gfx::applySpotLights( containerShaderProgram, cfg.spotLights);
+
+        // ------------------------------------------------
+        // RENDER OBJECTS (cubes)
+        // ------------------------------------------------
         containerShaderProgram.use();
         glm::mat4 view       = camera.GetViewMatrix();
         glm::mat4 projection = camera.GetProjection((float)SCR_WIDTH / SCR_HEIGHT);
@@ -120,7 +187,6 @@ int main() {
         containerShaderProgram.setUniform("view",       view);
         containerShaderProgram.setUniform("projection", projection);
         containerShaderProgram.setUniform("viewPos",    camera.Position);
-
 
         for (int i = 0; i < 10; i++) {
             containerShaderProgram.setUniform("material.alpha", 1.0f);
@@ -133,33 +199,37 @@ int main() {
             container.draw();
         }
 
+        // ------------------------------------------------
+        // SKYBOX
+        // ------------------------------------------------
         glDepthFunc(GL_LEQUAL);
         skyboxShaderProgram.use();
 
         glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
-        skyboxShaderProgram.setUniform("view", viewNoTrans);
+        skyboxShaderProgram.setUniform("view",       viewNoTrans);
         skyboxShaderProgram.setUniform("projection", projection);
         skybox.draw();
-
         glDepthFunc(GL_LESS);
 
-        //just for point lights
-//        lightShaderProgram.use();
-//        lightShaderProgram.setUniform("view",       view);
-//        lightShaderProgram.setUniform("projection", projection);
-//
-//        for (int i = 0; i < (int)cfg.pointLights.size(); ++i)
-//        {
-//            glm::vec3 pos  = cfg.pointLights[i].position;
-//
-//            // Build model matrix for the small light cube
-//            glm::mat4 model = glm::mat4(1.0f);
-//            model = glm::translate(model, pos);
-//            model = glm::scale(model, glm::vec3(0.2f));   // small cube size
-//
-//            lightShaderProgram.setUniform("model", model);
-//            container.draw();
-//        }
+        // ------------------------------------------------
+        // SMALL CUBES AT POINT LIGHT POSITIONS
+        // ------------------------------------------------
+        lightShaderProgram.use();
+        lightShaderProgram.setUniform("view",       view);
+        lightShaderProgram.setUniform("projection", projection);
+
+        for (int i = 0; i < (int)cfg.pointLights.size(); ++i)
+        {
+            glm::vec3 pos  = cfg.pointLights[i].position;
+
+            // Build model matrix for the small light cube
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, pos);
+            model = glm::scale(model, glm::vec3(0.2f));   // small cube size
+
+            lightShaderProgram.setUniform("model", model);
+            container.draw(); // reuse the same cube mesh
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -168,6 +238,7 @@ int main() {
     glfwTerminate();
     return 0;
 }
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
