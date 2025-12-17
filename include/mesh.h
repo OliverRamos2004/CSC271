@@ -20,6 +20,13 @@ struct VertexAttribute {
     size_t offset;      // byte offset to the first component
 };
 
+struct Transformation{
+    std::string name;
+    GLuint shaderProgramID;
+    GLint layout;
+    glm::mat4 m;
+};
+
 class Mesh {
 public:
     Mesh(std::vector<float> v, std::vector<unsigned int> idx, GLuint id);
@@ -41,7 +48,7 @@ private:
 
     GLuint VAO = 0, VBO = 0, EBO = 0;
     GLsizei indexCount = 0;
-
+    Transformation M, V, P;
     GLuint shaderProgramID;
     std::vector<float> vertices = {};
     std::vector<unsigned int> indices = {};

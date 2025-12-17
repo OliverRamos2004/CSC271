@@ -90,6 +90,8 @@ bool Mesh::loadOBJ_(const std::string& path)
                 glm::vec3 outDir = faceCenter - glm::vec3(centroid);
                 if (glm::dot(n, outDir) < 0.0f) n = -n;
 
+
+
                 // Helper to emit a single vertex (pos, n, uv) + push index
                 auto emit = [&](int localFaceVertex) {
                     const auto& idx = shape.mesh.indices[index_offset + localFaceVertex];
